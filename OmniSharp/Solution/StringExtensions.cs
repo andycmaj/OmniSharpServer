@@ -27,8 +27,13 @@ namespace OmniSharp.Solution
 
 		public static string ForceWindowsPathSeparator(this string path)
 		{
-			return path.Replace ('/', '\\');
+			return path.Replace('/', '\\');
 		}
+
+        public static string ForceUnixPathSeparator(this string path)
+        {
+            return path.Replace('\\', '/');
+        }
 
 		public static string ForceNativePathSeparator(this string path)
 		{
@@ -55,7 +60,7 @@ namespace OmniSharp.Solution
                 path = path.Replace(pathReplacement.From, pathReplacement.To);
             }
 
-            return path;
+            return path.ForceWindowsPathSeparator();
         }
 
         public static string ApplyPathReplacementsForClient(this string path)
@@ -65,6 +70,11 @@ namespace OmniSharp.Solution
             foreach (var pathReplacement in ConfigurationLoader.Config.PathReplacements)
             {
                 path = path.Replace(pathReplacement.To, pathReplacement.From);
+            }
+
+            if (ConfigurationLoader.Config.ClientPathMode.GetValueOrDefault(PathMode.Unix) == PathMode.Unix)
+            {
+                path = path.ForceUnixPathSeparator();
             }
 
             return path;

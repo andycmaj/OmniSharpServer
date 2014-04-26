@@ -93,7 +93,7 @@ namespace OmniSharp
                                                 new NativeFileSystem(), 
                                                 logger), 
                                                 new HostConfiguration{RewriteLocalhost=false}, 
-                                                new Uri("http://localhost:" + port));
+                                                new Uri("http://10.211.55.3:" + port + "/"));
 
                 nancyHost.Start();
                 logger.Debug("OmniSharp server is listening");
@@ -109,7 +109,7 @@ namespace OmniSharp
             }
             catch(Exception e)
             {
-				if(e is SocketException || e is HttpListenerException)
+				if(e is SocketException)
 				{
 					logger.Error("Detected an OmniSharp instance already running on port " + port + ". Press a key.");
 					Console.ReadKey();

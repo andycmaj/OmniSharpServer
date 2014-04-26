@@ -1,6 +1,13 @@
 ﻿{
   "PathReplacements":[
-		
+    {
+      "From":"/Users/acunningham/",
+      "To":"\\\\psf\\Home\\"
+    },
+    {
+      "From":"/Workspaces/appature/",
+      "To":"\\\\psf\\appature\\"
+    }
   ],
   TestCommands: {
 	All: "nunit-console.exe -nologo -labels {{AssemblyPath}}",
