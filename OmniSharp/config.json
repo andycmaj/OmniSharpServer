@@ -7,11 +7,19 @@
     {
       "From":"/Workspaces/appature/",
       "To":"\\\\psf\\appature\\"
+    },
+    {
+      "From":"/Workspaces/",
+      "To":"\\\\psf\host\Workspaces\\"
     }
   ],
-  TestCommands: {
-	All: "nunit-console.exe -nologo -labels {{AssemblyPath}}",
-	Fixture: "nunit-console.exe -nologo -labels {{AssemblyPath}} -run={{TypeName}}",
-	Single: "nunit-console.exe -nologo -labels {{AssemblyPath}} -run={{TypeName}}.{{MethodName}}"
-  } 
+  "IgnoredIssueProviders":[
+    "RedundantThisIssue",
+    "RedundantPrivateIssue"
+  ],
+  "TestCommands": {
+    "All": "nunit-console.exe -nologo -labels {{AssemblyPath}}",
+    "Fixture": "nunit-console.exe -nologo -labels {{AssemblyPath}} -run={{TypeName}}",
+    "Single": "nunit-console.exe -nologo -labels {{AssemblyPath}} -run={{TypeName}}.{{MethodName}}"
+  }
 }

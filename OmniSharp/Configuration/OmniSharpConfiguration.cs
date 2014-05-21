@@ -9,6 +9,7 @@ namespace OmniSharp.Configuration
             PathReplacements = new List<PathReplacement>();
         }
         public IEnumerable<PathReplacement> PathReplacements { get; set; }
+        public IEnumerable<string> IgnoredIssueProviders { get; set; }
         public TestCommands TestCommands { get; set; }
         public bool? UseCygpath { get; set; }
         public PathMode? ClientPathMode { get; set; }
