@@ -18,6 +18,7 @@
 [Rr]elease/
 
 #build/
+OmniSharp.sln.ide/
 
 
 [Tt]est[Rr]esult

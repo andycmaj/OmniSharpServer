@@ -1,6 +1,17 @@
 ﻿{
-  "PathReplacements": [
-
+  "PathReplacements":[
+    {
+      "From":"/Users/acunningham/",
+      "To":"\\\\psf\\Home\\"
+    },
+    {
+      "From":"/Workspaces/appature/",
+      "To":"\\\\psf\\appature\\"
+    },
+    {
+      "From":"/Workspaces/",
+      "To":"\\\\psf\\host\\Workspaces\\"
+    }
   ],
 
   "IgnoredCodeIssues": [
@@ -191,3 +202,4 @@
     "whileNewLinePlacement": 0
   }
 }
+

@@ -21,7 +21,7 @@ namespace OmniSharp
             var port = 2000;
             Verbosity verbosity = Verbosity.Debug;
 
-            
+
             var options = new OptionSet
                     {
                         {
@@ -38,7 +38,7 @@ namespace OmniSharp
                         },
                         {
                             "v|verbose=", "Output debug information (Quiet, Debug, Verbose)",
-                            v => verbosity = v != null 
+                            v => verbosity = v != null
                                                 ? (Verbosity)Enum.Parse(typeof(Verbosity), v)
                                                 : Verbosity.Debug
                         },
@@ -47,7 +47,7 @@ namespace OmniSharp
                             h => showHelp = h != null
                         },
                     };
-           
+
 
             try
             {
@@ -69,12 +69,12 @@ namespace OmniSharp
             }
 
             StartServer(solutionPath, clientPathMode, port, verbosity);
-            
+
         }
 
         private static void StartServer(string solutionPath, string clientPathMode, int port, Verbosity verbosity)
         {
-            
+
             var logger = new Logger(verbosity);
             try
             {
@@ -89,10 +89,10 @@ namespace OmniSharp
                             e.Cancel = true;
                         };
                 var nancyHost = new NancyHost(new Bootstrapper(
-                                                solution, 
-                                                new NativeFileSystem(), 
-                                                logger), 
-                                                new HostConfiguration{RewriteLocalhost=false}, 
+                                                solution,
+                                                new NativeFileSystem(),
+                                                logger),
+                                                new HostConfiguration{RewriteLocalhost=false},
                                                 new Uri("http://10.211.55.3:" + port + "/"));
 
                 nancyHost.Start();
@@ -103,7 +103,7 @@ namespace OmniSharp
                 {
                     Thread.Sleep(1000);
                 }
-                
+
                 Console.WriteLine("Quit gracefully");
                 nancyHost.Stop();
             }
