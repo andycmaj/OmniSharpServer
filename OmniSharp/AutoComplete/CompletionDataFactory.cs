@@ -8,15 +8,31 @@ using ICSharpCode.NRefactory.Completion;
 using ICSharpCode.NRefactory.TypeSystem;
 using OmniSharp.Documentation;
 using OmniSharp.Solution;
+using ICSharpCode.NRefactory.TypeSystem.Implementation;
 
 namespace OmniSharp.AutoComplete
 {
     public class CompletionDataFactory : ICompletionDataFactory
     {
+		public ICompletionData CreateImportCompletionData (IType type, bool useFullName, bool addForTypeCreation)
+		{
+			throw new NotImplementedException ();
+		}
+
+		public ICompletionData CreateFormatItemCompletionData (string format, string description, object example)
+		{
+			throw new NotImplementedException ();
+		}
+
+		public ICompletionData CreateXmlDocCompletionData (string tag, string description = null, string tagInsertionText = null)
+		{
+			throw new NotImplementedException ();
+		}
+
         private readonly string _partialWord;
         private readonly bool _instantiating;
-        private readonly CSharpAmbience _ambience = new CSharpAmbience { ConversionFlags = AmbienceFlags };
-        private readonly CSharpAmbience _signatureAmbience = new CSharpAmbience { ConversionFlags = AmbienceFlags | ConversionFlags.ShowReturnType };
+        private readonly CSharpAmbience _ambience = new CSharpAmbience { ConversionFlags = AmbienceFlags }; 
+        private readonly CSharpAmbience _signatureAmbience = new CSharpAmbience { ConversionFlags = AmbienceFlags | ConversionFlags.ShowReturnType | ConversionFlags.ShowBody };
 
         private const ConversionFlags AmbienceFlags =
             ConversionFlags.ShowParameterList |
@@ -37,10 +53,9 @@ namespace OmniSharp.AutoComplete
 
         public ICompletionData CreateEntityCompletionData(IEntity entity)
         {
-
             _completionText = _signature = entity.Name;
 
-            _completionText = _ambience.ConvertEntity(entity).Replace(";", "");
+			_completionText = _ambience.ConvertSymbol(entity).TrimEnd(';');
             if (!_completionText.IsValidCompletionFor(_partialWord))
                 return new CompletionData("~~");
 
@@ -52,7 +67,7 @@ namespace OmniSharp.AutoComplete
 
             if (entity is IField || entity is IProperty)
             {
-                _signature = _signatureAmbience.ConvertEntity(entity).Replace(";", "");
+				_signature = _signatureAmbience.ConvertSymbol(entity).TrimEnd(';');
             }
 
             ICompletionData completionData = CompletionData(entity);
@@ -83,7 +98,7 @@ namespace OmniSharp.AutoComplete
                                       ConversionFlags.ShowTypeParameterList
                 };
 
-                var documentationSignature = ambience.ConvertEntity(entity);
+				var documentationSignature = ambience.ConvertSymbol(entity);
                 if (_wantDocumentation)
                 {
                     string documentation = new DocumentationFetcher().GetDocumentation(_project, entity);
@@ -99,22 +114,70 @@ namespace OmniSharp.AutoComplete
             return completionData;
         }
 
+		private IEnumerable<string> GetMethodParameterTypeNames(IMethod method)
+		{
+            foreach(var parameter in method.Parameters)
+            {
+                //TODO: this logic is far from complete. At the very least it needs some recursion
+                if(parameter.Type is ArrayType)
+                {
+					yield return (parameter.Type as ArrayType).ElementType.Name;
+                }
+                else if(parameter.Type is DefaultTypeParameter)
+                {
+                    yield return (parameter.Type as DefaultTypeParameter).Name;
+                }
+                else if(parameter.Type is ParameterizedType)
+                {
+                    foreach(var typeArgument in (parameter.Type as ParameterizedType).TypeArguments)
+                    {
+                        yield return typeArgument.Name;
+                    }
+                }
+                else if(parameter.Type is UnknownType)
+                {
+                    yield return (parameter.Type as UnknownType).Name;
+                }
+            }
+		}
+
+		private bool MethodTypeParametersCanBeInferred(IMethod method)
+		{
+            if(method.IsExtensionMethod && method.Parameters.Count == 0)
+            {
+                // 'this' extension parameter is intentionally hidden by NRefactory
+                // using ReducedExtensionMethod, so we can't check it
+                return true;
+            }
+			var parameterTypes = GetMethodParameterTypeNames(method);
+			var methodTypeParameters = method.TypeParameters.Select(p => p.FullName).Distinct();
+			return !methodTypeParameters.Except(parameterTypes).Any();
+		}
+
         private void GenerateMethodSignature(IMethod method)
         {
-            _signature = _signatureAmbience.ConvertEntity(method).Replace(";", "");
-            _completionText = _ambience.ConvertEntity(method);
-            _completionText = _completionText.Remove(_completionText.IndexOf('(') + 1);
-            var zeroParameterCount = method.IsExtensionMethod ? 1 : 0;
-            if (method.Parameters.Count == zeroParameterCount)
+			_signature = _signatureAmbience.ConvertSymbol(method).TrimEnd(';');
+			_completionText = _ambience.ConvertSymbol(method);
+            _completionText = _completionText.Remove(_completionText.IndexOf('('));
+            var parameterTypesCanBeInferred = MethodTypeParametersCanBeInferred(method);
+			if((method.TypeParameters.Count > 0 && method.TypeParameters[0].Name != "TSource") && !parameterTypesCanBeInferred)
             {
-                _completionText += ")";
+				_completionText += "<";
+            }
+            else
+            {
+				_completionText += "(";
+                if (method.Parameters.Count == 0)
+                {
+                    _completionText += ")";
+                }
             }
         }
 
-        private void GenerateGenericMethodSignature(IMethod method)
+        private void GenerateGenericMethodSignature(ISymbol method)
         {
-            _signature = _signatureAmbience.ConvertEntity(method).Replace(";", "");
-            _completionText = _ambience.ConvertEntity(method);
+			_signature = _signatureAmbience.ConvertSymbol(method).TrimEnd(';');
+			_completionText = _signatureAmbience.ConvertSymbol(method);
             _completionText = _completionText.Remove(_completionText.IndexOf('(')) + "<";
         }
 
@@ -123,15 +186,16 @@ namespace OmniSharp.AutoComplete
             return new CompletionData(text);
         }
 
-        public ICompletionData CreateTypeCompletionData(IType type, bool showFullName, bool isInAttributeContext)
+		public ICompletionData CreateTypeCompletionData (IType type, bool showFullName, bool isInAttributeContext, bool addForTypeCreation)
         {
             if (!type.Name.IsValidCompletionFor(_partialWord))
             {
                 return new CompletionData("~~");
             }
-            var completion = new CompletionData(type.Name);
+            CompletionData completion;
             if (_instantiating)
             {
+                completion = new CompletionData(type.Name);
                 foreach (var constructor in type.GetConstructors())
                 {
                     if (type.TypeParameterCount > 0)
@@ -148,6 +212,12 @@ namespace OmniSharp.AutoComplete
             }
             else
             {
+                var name = type.Name;
+                if (type.TypeParameterCount > 0)
+                {
+                    name += "<";
+                }
+                completion = new CompletionData(name);
                 completion.AddOverload(completion);
             }
             return completion;
@@ -158,7 +228,7 @@ namespace OmniSharp.AutoComplete
             return new CompletionData(type.Name);
         }
 
-        public ICompletionData CreateLiteralCompletionData(string title, string description, string insertText)
+		public ICompletionData CreateLiteralCompletionData(string title, string description = null, string insertText = null)
         {
             return new CompletionData(title, description);
         }

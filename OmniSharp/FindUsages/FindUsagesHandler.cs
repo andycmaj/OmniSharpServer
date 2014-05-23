@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -22,9 +22,11 @@ namespace OmniSharp.FindUsages
         private readonly BufferParser _parser;
         private readonly ISolution _solution;
         private ConcurrentBag<AstNode> _result;
+        private ProjectFinder _projectFinder;
 
-        public FindUsagesHandler(BufferParser parser, ISolution solution)
+        public FindUsagesHandler(BufferParser parser, ISolution solution, ProjectFinder projectFinder)
         {
+            _projectFinder = projectFinder;
             _parser = parser;
             _solution = solution;
         }
@@ -87,7 +89,7 @@ namespace OmniSharp.FindUsages
                 if (resolveResult is MemberResolveResult)
                 {
                     entity = (resolveResult as MemberResolveResult).Member;
-                    if (entity.EntityType == EntityType.Constructor)
+                    if (entity.SymbolKind == SymbolKind.Constructor)
                     {
                         // process type instead
                         var type = entity.DeclaringType;
@@ -98,8 +100,9 @@ namespace OmniSharp.FindUsages
                     else
                     {
                         ProcessMemberResults(resolveResult);
+                        var member = (resolveResult as MemberResolveResult).Member;
                         var members = MemberCollector.CollectMembers(_solution,
-                                          (resolveResult as MemberResolveResult).Member, false);
+                                          member, false);
                         searchScopes = members.Select(findReferences.GetSearchScopes);
                     }
                 }
@@ -107,25 +110,27 @@ namespace OmniSharp.FindUsages
                 if (entity == null)
                     return _result;
 
-                foreach (var project in _solution.Projects)
+                var projectsThatReferenceUsage = _projectFinder.FindProjectsReferencing(entity.Compilation.TypeResolveContext);
+
+                foreach (var project in projectsThatReferenceUsage)
                 {
                     var pctx = project.ProjectContent.CreateCompilation();
                     var interesting = (from file in project.Files
-                                    select (file.ParsedFile as CSharpUnresolvedFile)).ToList();
+                                                      select (file.ParsedFile as CSharpUnresolvedFile)).ToList();
 
                     Parallel.ForEach(interesting.Distinct(), file =>
-                    {
-                        string text = _solution.GetFile(file.FileName.LowerCaseDriveLetter()).Content.Text;
-                        var unit = new CSharpParser().Parse(text, file.FileName);
-
-                        foreach(var scope in searchScopes)
                         {
-                            findReferences.FindReferencesInFile(scope, file, unit,
-                                pctx,
-                                (node, rr) => _result.Add(node.GetIdentifier()),
-                                CancellationToken.None);
-                        }
-                    });
+                            string text = _solution.GetFile(file.FileName.LowerCaseDriveLetter()).Content.Text;
+                            var unit = new CSharpParser().Parse(text, file.FileName);
+
+                            foreach (var scope in searchScopes)
+                            {
+                                findReferences.FindReferencesInFile(scope, file, unit,
+                                    pctx,
+                                    (node, rr) => _result.Add(node.GetIdentifier()),
+                                    CancellationToken.None);
+                            }
+                        });
                 }
             }
             return _result;

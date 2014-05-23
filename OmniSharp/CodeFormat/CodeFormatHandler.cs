@@ -1,26 +1,24 @@
-﻿using System;
-using ICSharpCode.NRefactory.CSharp;
-using ICSharpCode.NRefactory.Editor;
+﻿using ICSharpCode.NRefactory.CSharp;
+using OmniSharp.Configuration;
 
 namespace OmniSharp.CodeFormat
 {
-    public class CodeFormatHandler  
+    public class CodeFormatHandler
     {
+        readonly OmniSharpConfiguration _config;
+
+        public CodeFormatHandler(OmniSharpConfiguration config)
+        {
+            _config = config;
+        }
         public CodeFormatResponse Format(CodeFormatRequest request)
         {
-            var document = new StringBuilderDocument(request.Buffer);
-            var options = new TextEditorOptions();
-            options.EolMarker = Environment.NewLine;
-            options.WrapLineLength = 80;
-            options.TabsToSpaces = request.ExpandTab;
-            var policy = FormattingOptionsFactory.CreateAllman();
-            var visitor = new AstFormattingVisitor(policy, document, options);
-            visitor.FormattingMode = FormattingMode.Intrusive;
-            var syntaxTree = new CSharpParser().Parse(document, request.FileName);
-            syntaxTree.AcceptVisitor(visitor);
-            visitor.ApplyChanges();
-            return new CodeFormatResponse(document.Text);
+            var options = _config.TextEditorOptions;
+            var policy = _config.CSharpFormattingOptions;
+            var formatter = new CSharpFormatter(policy, options);
+            formatter.FormattingMode = FormattingMode.Intrusive;
+            var output = formatter.Format(request.Buffer);
+            return new CodeFormatResponse(output);
         }
     }
 }
-

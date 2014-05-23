@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Xml.Linq;
 using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.TypeSystem;
+using System.Linq;
+using ICSharpCode.NRefactory.Editor;
 
 namespace OmniSharp.Solution
 {
@@ -28,28 +30,41 @@ namespace OmniSharp.Solution
             AddReference(CSharpProject.LoadAssembly(reference));
         }
 
-        private readonly CSharpFile _file;
-
         public OrphanProject()
         {
             Title = "Orphan Project";
-            _file = new CSharpFile(this, "dummy_file", "");
             Files = new List<CSharpFile>();
-            Files.Add(_file);
 
             ProjectId = Guid.NewGuid();
 
             References = new List<IAssemblyReference>();
-
-            string mscorlib = CSharpProject.FindAssembly(CSharpProject.AssemblySearchPaths, "mscorlib");
+            FileName = "OrphanProject";
+            string mscorlib = CSharpProject.FindAssembly("mscorlib");
+            Console.WriteLine(mscorlib);
             ProjectContent = new CSharpProjectContent()
                 .SetAssemblyName("OrphanProject")
                 .AddAssemblyReferences(CSharpProject.LoadAssembly(mscorlib));
         }
 
-        public CSharpFile GetFile(string fileName)
+        private CSharpFile GetFile(string fileName, string source)
         {
-            return _file;
+            var file = Files.FirstOrDefault(f => f.FileName.Equals(fileName, StringComparison.InvariantCultureIgnoreCase));
+            if (file == null)
+            {
+                file = new CSharpFile(this, fileName, source);
+                Files.Add (file);
+
+                this.ProjectContent
+                    .AddOrUpdateFiles(file.ParsedFile);
+            }
+            return file;
+        }
+
+        public void UpdateFile(string fileName,string source)
+        {
+            var file = GetFile (fileName, source);
+            file.Content = new StringTextSource(source);
+            file.Parse(this, fileName, source);
         }
 
         public CSharpParser CreateParser()

@@ -1,9 +1,9 @@
 OmniSharpServer
 ===============
 
-[![Build Status](https://travis-ci.org/nosami/OmniSharpServer.png?branch=master)](https://travis-ci.org/nosami/OmniSharpServer)
+[![Mono Build Status](https://travis-ci.org/nosami/OmniSharpServer.png?branch=master)](https://travis-ci.org/nosami/OmniSharpServer) [![Windows Build Status](http://teamcity.codebetter.com/app/rest/builds/buildType:(id:bt1232)/statusIcon)](http://teamcity.codebetter.com/viewType.html?buildTypeId=bt1232&guest=1)
 
-HTTP wrapper around NRefactory allowing C# editor plugins to be written for any editor in any language.
+HTTP wrapper around [NRefactory] (https://github.com/icsharpcode/NRefactory) allowing C# editor plugins to be written for any editor in any language.
 
 
 This is the server component for the [Vim OmniSharp plugin](https://github.com/nosami/OmniSharp), [YouCompleteMe](https://github.com/Valloric/YouCompleteMe), [Sublime Text 2](https://github.com/PaulCampbell/OmniSharpSublimePlugin), [Sublime Text 3](https://github.com/moonrabbit/OmniSharpSublime)
@@ -12,20 +12,25 @@ and [Emacs OmniSharp plugin](https://github.com/sp3ctum/omnisharp-emacs).
 
 #Build
 
-####OSX / Linux
+####OSX / Linux 
+Requires a minimum of Mono 3.0.12 - If you absolutely must use mono 2.10 then checkout the mono-2.10.8 tag. [Updating mono on ubuntu](https://github.com/nosami/OmniSharpServer/wiki)
+```
     git clone https://github.com/nosami/OmniSharpServer.git
+    git submodule update --init --recursive
     cd OmniSharpServer
-    xbuild /p:Platform="Any CPU"
+    xbuild
+```
 
 ####Windows
+```
     git clone https://github.com/nosami/OmniSharpServer.git
+    git submodule update --init --recursive
     cd OmniSharpServer
 
     # (if using Cygwin, overwrite the default config file config.json with config-cygwin.json)
     copy OmniSharp\config-cygwin.json OmniSharp\config.json
-
-    msbuild /p:Platform="Any CPU"
-    
+    msbuild
+```
 
 To start the Omnisharp server manually (The Vim OmniSharp client and YouCompleteMe may start this for you automatically):
 

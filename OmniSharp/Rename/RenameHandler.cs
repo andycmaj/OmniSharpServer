@@ -2,7 +2,7 @@
 using System.Linq;
 using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.CSharp.Resolver;
-using ICSharpCode.NRefactory.CSharp.TypeSystem;
+using OmniSharp.Configuration;
 using OmniSharp.FindUsages;
 using OmniSharp.Parser;
 using OmniSharp.Refactoring;
@@ -15,12 +15,14 @@ namespace OmniSharp.Rename
         private readonly ISolution _solution;
         private readonly BufferParser _bufferParser;
         private readonly FindUsagesHandler _findUsagesHandler;
+		private readonly OmniSharpConfiguration _config;
 
-        public RenameHandler(ISolution solution, BufferParser bufferParser)
+        public RenameHandler(ISolution solution, BufferParser bufferParser, OmniSharpConfiguration config, FindUsagesHandler findUsagesHandler)
         {
             _solution = solution;
             _bufferParser = bufferParser;
-            _findUsagesHandler = new FindUsagesHandler(bufferParser, solution);
+            _findUsagesHandler = findUsagesHandler;
+            _config = config;
         }
 
         public RenameResponse Rename(RenameRequest req)
@@ -61,7 +63,7 @@ namespace OmniSharp.Rename
 
                 foreach (var node in lastToFirstNodes)
                 {
-                    using (var script = new OmniSharpScript(context))
+                    using (var script = new OmniSharpScript(context, _config))
                     {
                         script.Rename(node, req.RenameTo);
                         modifiedBuffer = script.CurrentDocument.Text;
@@ -80,7 +82,7 @@ namespace OmniSharp.Rename
                     response.Changes = modfiedFiles;
 
                     _bufferParser.ParsedContent(modifiedBuffer, fileName);
-                    _solution.GetFile(fileName).Update(modifiedBuffer);
+                    _solution.ProjectContainingFile(fileName).UpdateFile (fileName, modifiedBuffer);
                 }
             }
 
